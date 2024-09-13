@@ -5664,6 +5664,7 @@ dependencies = [
  "nym-bin-common",
  "nym-explorer-client",
  "nym-network-defaults",
+ "nym-node-requests",
  "nym-task",
  "nym-validator-client",
  "serde",

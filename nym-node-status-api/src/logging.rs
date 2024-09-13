@@ -14,7 +14,7 @@ pub(crate) fn setup_tracing_logger() {
         // Display source code line numbers
         .with_line_number(true)
         // Don't display the event's target (module path)
-        .with_target(false);
+        .with_target(true);
 
     let mut filter = EnvFilter::builder()
         // if RUST_LOG isn't set, set default level
@@ -32,6 +32,8 @@ pub(crate) fn setup_tracing_logger() {
         "sqlx",
         "h2",
         "tendermint_rpc",
+        "tower_http",
+        "axum",
     ];
     for crate_name in filter_crates {
         filter = filter.add_directive(directive_checked(format!("{}=warn", crate_name)));
