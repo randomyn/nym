@@ -1,7 +1,6 @@
 // Copyright 2023 - Nym Technologies SA <contact@nymtech.net>
 // SPDX-License-Identifier: GPL-3.0-only
 
-use crate::start_nym_api_tasks;
 use crate::support::config::helpers::try_load_current_config;
 use cfg_if::cfg_if;
 
@@ -62,24 +61,14 @@ pub(crate) async fn execute(args: Args) -> anyhow::Result<()> {
 
     config.validate()?;
 
-    #[cfg(feature = "axum")]
-    let mut axum_shutdown = crate::v2::start_nym_api_tasks_v2(&config).await?;
-    let mut rocket_shutdown = start_nym_api_tasks(config).await?;
-
-    // it doesn't matter which server catches the interrupt: it needs only be caught once
-    if let Err(err) = rocket_shutdown.task_manager_handle.catch_interrupt().await {
-        error!("Error stopping Rocket tasks: {err}");
-    }
-
-    log::info!("Stopping nym API");
-    rocket_shutdown.rocket_handle.notify();
-
-    // because Rocket caught the interrupt, it had already signalled its
-    // background tasks to retire. Now do that for axum
     cfg_if! {
         if #[cfg(feature = "axum")] {
-            axum_shutdown.task_manager_mut().signal_shutdown().ok();
-            axum_shutdown.task_manager_mut().wait_for_shutdown().await;
+            let mut axum_shutdown = crate::v2::start_nym_api_tasks_v2(&config).await?;
+            if let Err(err) = axum_shutdown.task_manager_mut().catch_interrupt().await {
+                error!("Error stopping Rocket tasks: {err}");
+            };
+
+            log::info!("Stopping nym API");
 
             let running_server = axum_shutdown.shutdown_axum();
 
@@ -95,8 +84,17 @@ pub(crate) async fn execute(args: Args) -> anyhow::Result<()> {
                     error!("Server task panicked: {err}");
                 }
             };
+
+        } else {
+            let mut rocket_shutdown = crate::start_nym_api_tasks(config).await?;
+            if let Err(err) = rocket_shutdown.task_manager_handle.catch_interrupt().await {
+                error!("Error stopping Rocket tasks: {err}");
+            }
+            log::info!("Stopping nym API");
+
+            rocket_shutdown.rocket_handle.notify();
         }
-    }
+    };
 
     Ok(())
 }
