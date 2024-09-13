@@ -228,13 +228,7 @@ impl Config {
 
 // TODO rocket: when axum becomes the main server, change its bind addr default here
 fn default_http_socket_addr() -> SocketAddr {
-    cfg_if::cfg_if! {
-        if #[cfg(debug_assertions)] {
-            SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 8081)
-        } else {
-            SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 8081)
-        }
-    }
+    SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 8000)
 }
 
 // we only really care about the mnemonic being zeroized
